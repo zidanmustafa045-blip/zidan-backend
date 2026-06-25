@@ -3,6 +3,9 @@
 تُقرأ القيم من متغيرات البيئة أو من ملف .env الموجود في جذر المشروع.
 """
 
+import json
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +25,25 @@ class Settings(BaseSettings):
     APP_NAME: str = "AgriVision Ultra API"
     APP_VERSION: str = "1.0.0"
     CORS_ORIGINS: list[str] = ["*"]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v):
+        """Accept either a JSON array string or a comma-separated string,
+        so misformatted env vars on any hosting provider (Render, Hugging
+        Face Secrets, etc.) don't crash the app at startup."""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["*"]
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(o).strip() for o in parsed]
+            except (json.JSONDecodeError, ValueError):
+                pass
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
 
     model_config = SettingsConfigDict(
         env_file=".env",
