@@ -5,7 +5,6 @@
 
 import json
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,26 +23,26 @@ class Settings(BaseSettings):
     # ----- إعدادات عامة -----
     APP_NAME: str = "AgriVision Ultra API"
     APP_VERSION: str = "1.0.0"
-    CORS_ORIGINS: list[str] = ["*"]
+    # يُخزَّن كنص خام (str) عمداً، وليس list[str]، لأن pydantic-settings يحاول
+    # فك تشفير JSON تلقائياً لأي حقل من نوع list قبل أن تصل القيمة لأي
+    # validator خاص بنا - فإذا كانت القيمة في .env / Secrets غير JSON صالح
+    # تماماً (مثلاً بسبب اختلاف طريقة الإدخال بين Render و Hugging Face
+    # و Railway) يتعطل تشغيل التطبيق بالكامل عند الإقلاع. لذلك نقرأها كنص
+    # ثم نحوّلها بأنفسنا عبر الخاصية cors_origins أدناه.
+    CORS_ORIGINS: str = "*"
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def _parse_cors_origins(cls, v):
-        """Accept either a JSON array string or a comma-separated string,
-        so misformatted env vars on any hosting provider (Render, Hugging
-        Face Secrets, etc.) don't crash the app at startup."""
-        if isinstance(v, str):
-            v = v.strip()
-            if not v:
-                return ["*"]
-            try:
-                parsed = json.loads(v)
-                if isinstance(parsed, list):
-                    return [str(o).strip() for o in parsed]
-            except (json.JSONDecodeError, ValueError):
-                pass
-            return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+    @property
+    def cors_origins(self) -> list[str]:
+        v = self.CORS_ORIGINS.strip()
+        if not v or v == "*":
+            return ["*"]
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return [str(o).strip() for o in parsed]
+        except (json.JSONDecodeError, ValueError):
+            pass
+        return [o.strip() for o in v.split(",") if o.strip()]
 
     model_config = SettingsConfigDict(
         env_file=".env",
