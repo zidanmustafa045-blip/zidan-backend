@@ -5,6 +5,7 @@
 
 import json
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "CHANGE-THIS-SECRET-KEY-IN-PRODUCTION"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # يوم كامل
+
+    @field_validator("ACCESS_TOKEN_EXPIRE_MINUTES", mode="before")
+    @classmethod
+    def _parse_token_minutes(cls, v):
+        # بعض منصات الاستضافة (Hugging Face Secrets مثلاً) قد تمرر قيمة
+        # فارغة "" إذا لم يُكتب شيء بالخطأ، فنستخدم القيمة الافتراضية
+        # بدل تعطل الإقلاع بالكامل.
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return 60 * 24
+        return v
 
     # ----- خدمات خارجية -----
     OPEN_METEO_BASE_URL: str = "https://api.open-meteo.com/v1/forecast"
