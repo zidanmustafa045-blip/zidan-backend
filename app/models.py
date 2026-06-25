@@ -217,7 +217,10 @@ class Pest(Base):
     id = Column(SmallInteger, primary_key=True, autoincrement=True)
     name_ar = Column(String(80), nullable=False)
     icon = Column(String(10))
-    severity = Column(Enum(PestSeverity, name="pest_severity"), nullable=False)
+    severity = Column(
+        Enum(PestSeverity, name="pest_severity", values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+    )
     symptoms = Column(Text, nullable=False)
     solution = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
