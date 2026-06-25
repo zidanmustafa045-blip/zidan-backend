@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import admin, ads, auth, crops, farms, feasibility, fertilizer, pests, prices, recommendations, weather
+from app.routers import chatbot, admin, ads, auth, crops, farms, feasibility, fertilizer, pests, prices, recommendations, weather
 from app.scheduler import shutdown_scheduler, start_scheduler
 
 app = FastAPI(
@@ -44,6 +44,7 @@ app.include_router(pests.router)
 app.include_router(recommendations.router)
 app.include_router(admin.router)
 app.include_router(ads.router)
+app.include_router(chatbot.router)
 
 
 @app.on_event("startup")
